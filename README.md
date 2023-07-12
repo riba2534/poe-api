@@ -19,6 +19,8 @@ This is a reverse engineered API wrapper for Quora's Poe, which allows you free 
     + [Downloading Conversation History](#downloading-conversation-history)
     + [Deleting Messages](#deleting-messages)
     + [Purging a Conversation](#purging-a-conversation)
+    + [Purging All Conversations](#purging-all-conversations)
+    + [Getting the Remaining Messages](#getting-the-remaining-messages)
   * [Misc](#misc)
     + [Changing the Logging Level](#changing-the-logging-level)
     + [Setting a Custom User-Agent](#setting-a-custom-user-agent)
@@ -55,7 +57,7 @@ python3 examples/temporary_message.py "TOKEN_HERE"
 ```
 
 ### Finding Your Token:
-Log into [Poe](https://poe.com) on any web browser, then open your browser's developer tools (also known as "inspect") and look for the value of the `p-b` cookie in the following menus:
+Log into [Poe](https://poe.com) on any desktop web browser, then open your browser's developer tools (also known as "inspect") and look for the value of the `p-b` cookie in the following menus:
  - Chromium: Devtools > Application > Cookies > poe.com
  - Firefox: Devtools > Storage > Cookies
  - Safari: Devtools > Storage > Cookies
@@ -133,6 +135,11 @@ print(json.dumps(client.explore_bots(count=1), indent=2))
 """
 ```
 
+To get a specific third party bot, you can use `client.get_bot_by_codename`, which accept's the bot's codename as its only argument.
+```python
+client.get_bot_by_codename("JapaneseTutor")
+```
+
 Since display names are the same as the codenames for custom bots, you can simply pass the bot's display name into `client.send_message` to send it a message.
 
 #### Creating New Bots:
@@ -180,7 +187,7 @@ Bot API related arguments:
 
 A full example of how to create and edit bots is located at `examples/create_bot.py`.
 ```python
-edit_result = client.edit_bot(1086981, "bot_handle_here", base_model="beaver")
+edit_result = client.edit_bot(1086981, "bot_handle_here", base_model="a2")
 ```
 
 #### Sending Messages:
@@ -189,6 +196,8 @@ You can use the `client.send_message` function to send a message to a chatbot, w
  - `message` - The message to send to the chatbot.
  - `with_chat_break = False` - Whether the conversation context should be cleared.
  - `timeout = 20` - The max number of seconds in between received chunks until a `RuntimeError` is raised. 
+ - `async_recv = True` - Whether or not to make the `receive_POST` request async. If this is disabled, then there will be an extra wait of about 3 seconds after the message is complete.
+ - `suggest_callback = None` - Callback for suggested replies. See `examples/send_message.py` for an example on how to use this.
 
 The function is a generator which returns the most recent version of the generated message whenever it is updated.
 
@@ -278,11 +287,23 @@ client.purge_conversation("capybara", count=10)
 client.purge_conversation("capybara")
 ```
 
+#### Purging All Conversations:
+To purge every conversation in your account, use the `client.purge_all_conversations` function. This function doesn't need any arguments.
+
+```python
+>>> client.purge_all_conversations()
+```
+
 #### Getting the Remaining Messages:
 To get the number of messages remaining in the quota for a conversation, use the `client.get_remaining_messages` function. This function accepts the following arguments:
  - `chatbot` - The codename of the chatbot.
 
 The function will return the number of messages remaining, or `None` if the bot does not have a quota.
+
+```python
+>>> client.get_remaining_messages("beaver")
+1
+```
 
 ### Misc:
 #### Changing the Logging Level:
@@ -324,7 +345,10 @@ The following headers will be ignored and overwritten:
 
 Previously, this was done through `poe.user_agent`, but that variable is now completely ignored.
 
-You'd also want to change `poe.client_identifier` to match the user-agent that you have set. See the [Python-TLS-Client documentation](https://github.com/FlorianREGAZ/Python-Tls-Client#examples) for some examples.
+You'd also want to change `poe.client_identifier` to match the user-agent that you have set. See the [Python-TLS-Client documentation](https://github.com/FlorianREGAZ/Python-Tls-Client#examples) for some sample values. Keep in mind that spoofing Chrome/Firefox versions >= 110 may be detectable. 
+```python
+poe.client_identifier = "chrome_107"
+```
 
 ### Setting a Custom Device ID:
 If you want to change the device ID that is being spoofed, you can use the `poe.set_device_id`, which accepts the following arguments:
@@ -339,10 +363,10 @@ The device IDs are saved to `~/.config/poe-api/device_id.json` on Unix-like syst
 
 Additionally, the `poe.get_device_id` function or `client.device_id` can be used to retrieve the saved device ID.
 ```python
-poe.get_device_id("UGMlVXqlcLYyMOATMDsKNTMz")
+>>> poe.get_device_id("UGMlVXqlcLYyMOATMDsKNTMz")
 #6d659b04-043a-41f8-97c7-fb7d7fe9ad34
 
-client.device_id
+>>> client.device_id
 #6d659b04-043a-41f8-97c7-fb7d7fe9ad34
 ```
 
